@@ -12,6 +12,7 @@ type Article struct {
 	Title       string `form:"title" json:"title"`
 	Description string `form:"description" json:"description"`
 	Content     string `form:"content" json:"content"`
+	Deleted     bool   `json:"-"`
 }
 
 var articles []Article
@@ -54,6 +55,29 @@ func showArticle(c echo.Context) error {
 	return c.JSON(http.StatusOK, c.JSON(http.StatusOK, articles[articleId]))
 }
 
+// method update article by id
+func updateArticle(c echo.Context) error {
+	articleId, err := strconv.Atoi(c.Param("id"))
+
+	if len(articles) < articleId {
+		return c.NoContent(http.StatusNotFound)
+	}
+
+	if err != nil {
+		return c.NoContent(http.StatusInternalServerError)
+	}
+
+	var article Article
+
+	if err = c.Bind(&article); err != nil {
+		return c.NoContent(http.StatusBadRequest)
+	}
+
+	articles[articleId] = article
+
+	return c.NoContent(http.StatusOK)
+}
+
 func main() {
 	articles = make([]Article, 0)
 	e := echo.New()
@@ -65,5 +89,6 @@ func main() {
 	e.GET("/", func(c echo.Context) error {
 		return c.String(http.StatusOK, "Hello, World!")
 	})
+	e.PUT("/articles/:id", updateArticle)
 	e.Logger.Fatal(e.Start(":1323"))
 }
