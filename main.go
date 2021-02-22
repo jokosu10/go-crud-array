@@ -52,7 +52,13 @@ func showArticle(c echo.Context) error {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
-	return c.JSON(http.StatusOK, c.JSON(http.StatusOK, articles[articleId]))
+	article := articles[articleId]
+
+	if article.Deleted {
+		return c.NoContent(http.StatusNotFound)
+	}
+
+	return c.JSON(http.StatusOK, article)
 }
 
 // method update article by id
@@ -67,7 +73,11 @@ func updateArticle(c echo.Context) error {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
-	var article Article
+	article := articles[articleId]
+
+	if article.Deleted {
+		return c.NoContent(http.StatusNotFound)
+	}
 
 	if err = c.Bind(&article); err != nil {
 		return c.NoContent(http.StatusBadRequest)
@@ -76,6 +86,37 @@ func updateArticle(c echo.Context) error {
 	articles[articleId] = article
 
 	return c.NoContent(http.StatusOK)
+}
+
+// method delete article by id
+func deletedArticle(c echo.Context) error {
+	articleId, err := strconv.Atoi(c.Param("id"))
+
+	if len(articles) < articleId {
+		return c.NoContent(http.StatusNotFound)
+	}
+
+	if err != nil {
+		return c.NoContent(http.StatusInternalServerError)
+	}
+
+	article := articles[articleId]
+	article.Deleted = true
+
+	articles[articleId].Deleted = true
+
+	return c.NoContent(http.StatusGone)
+}
+
+func listArticles(c echo.Context) error {
+	shownArticles := make([]Article, len(articles))
+
+	for _, article := range articles {
+		if !article.Deleted {
+			shownArticles = append(shownArticles, article)
+		}
+	}
+	return c.JSON(http.StatusOK, shownArticles)
 }
 
 func main() {
@@ -90,5 +131,6 @@ func main() {
 		return c.String(http.StatusOK, "Hello, World!")
 	})
 	e.PUT("/articles/:id", updateArticle)
+	e.DELETE("/articles/:id", deletedArticle)
 	e.Logger.Fatal(e.Start(":1323"))
 }
